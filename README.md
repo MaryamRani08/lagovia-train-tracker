@@ -29,6 +29,7 @@ Returns upcoming departures scheduled within 15 minutes from all stations whose 
 ### Request
 
 |parameter | Type   | Required | Description |
+|----------|--------|----------|-----------------
 |  q       | string |  yes     | Station name|
 (atleast  3 chars)
 
@@ -54,8 +55,9 @@ Returns upcoming departures scheduled within 15 minutes from all stations whose 
 
 ### Error responses
 
-|Status code  | Explaination |
-| 400         | Query is shorter than 3 charcters |
+|Status code  | Explanation |
+-----------------------------------------------------
+| 400         | Query is shorter than 3 characters |
 | 503         | iRail API could not be reached |
 
 ## Decisions and trade-offs
@@ -88,7 +90,7 @@ if one station's liveboard call fails, the app skips that station and continues 
 
 - every request calls iRail fresh. So,high traffic would hit iRail's rate limits.
 - Station liveboard calls are sequential, not concurrent.Could be faster with asyncio.gather().
-- only exact substring matching implemented, exact substring matching needed.
+- Fuzzy search not implemented — only exact substring matching supported
 
 ## Time spent
 
@@ -102,7 +104,7 @@ I used Claude (claude.ai) and also chatgpt throughout this project as a learning
 - Understanding the iRail API structure before writing any code
 - learnign about API and how FastAPI works.
 - Learning how async/await and httpx work in Python
-- leanred about time conversion and diffenret imports.
+- leanred about time conversion and different imports.
 
 **What I did myself:**
 - All code was typed by hand, not copy-pasted
