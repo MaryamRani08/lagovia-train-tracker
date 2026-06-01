@@ -3,22 +3,21 @@ import httpx
 from datetime import datetime, timezone, timedelta
 
 app = FastAPI()
+
 @app.get("/departures")
+
 async def get_dep(q:str = Query(...)):
     if len(q) < 3:
       raise HTTPException(
         status_code=400,
         detail = "Query must be at least 3 characters long"
       )
-    # return {"message": "working", "query": q}
+    
     try:
        async with httpx.AsyncClient(timeout=10.0,follow_redirects=True) as client:
           response = await client.get("https://api.irail.be/stations/?format=json&lang=en",
                                    headers={"User-Agent": "lagovia-train-tracker/1.0"})
           all_stations = response.json()["station"]
-        #   stations = all_data["station"]
-
-    #    return  {"status": response.status_code, "text": response.text[:500]}
     except Exception: 
           raise HTTPException(
              status_code= 503,
@@ -29,8 +28,6 @@ async def get_dep(q:str = Query(...)):
              s for s in all_stations
              if q.lower() in s["name"].lower()
                  ]
-
-    # return {"query": q, "matched_station_found" : len(match_station), "stations" : match_station}
     
     results = []
     
@@ -62,11 +59,12 @@ async def get_dep(q:str = Query(...)):
                       "delay_minutes" : int(depar["delay"]) // 60 
                         })
                    
-                   results.append({
+             results.append({
                       "station" : station["name"],
                       "departures" : filtered_dep
                       
                       })
+             
        except Exception:
           results.append({
              "station" : station["name"],
@@ -75,12 +73,3 @@ async def get_dep(q:str = Query(...)):
              })
           
     return {"query" : q, "stations_found": len(match_stations), "results": results}
-
-          
-
-
-
-
-
-#Step 2 : Call iRail to fetch matching stations
-#Step 3 : For each station, fetch departures and filter to 15 minutes
