@@ -1,40 +1,88 @@
-# lagovia-train-tracker
-HTTP API that returns live train departures for Belgian stations using the iRail API. Built with Python and FastAPI.
+# Lagovia Train Tracker
 
-## How to run locally
+A lightweight HTTP API that returns live train departures for Belgian railway stations using the iRail API. Built with Python, FastAPI, and httpx.
 
-1. Clone the repository 
-     git clone https://github.com/MaryamRani08/lagovia-train-tracker.git
-     cd lagovia-train-tracker
+## Features
 
-2. Create and activate a virtual environment (optional)
-     python -m venv venv
-     venv\Scripts\activate       # Windows
-     source venv/bin/activate    # Mac/Linux
+* Searches Belgian railway stations using a partial station name
+* Returns departures scheduled within the next 15 minutes
+* Shows train number, destination, scheduled departure time, and delay
+* Validates that the search query contains at least three characters
+* Continues processing if a request for one station fails
+* Provides interactive Swagger documentation through FastAPI
 
-3. Install required dependencies
-     pip install -r requirements.txt
+## Run Locally
 
-4. Start the server using 
-     uvicorn main:app --reload
+### 1. Clone the repository
 
-5. Open http://localhost:8000/docs to test interactively
+```bash
+git clone https://github.com/MaryamRani08/lagovia-train-tracker.git
+cd lagovia-train-tracker
+```
 
-## Endpoint
+### 2. Create a virtual environment
 
+```bash
+python -m venv venv
+```
+
+Activate it on Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+Activate it on macOS or Linux:
+
+```bash
+source venv/bin/activate
+```
+
+### 3. Install the dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Start the development server
+
+```bash
+uvicorn main:app --reload
+```
+
+### 5. Open the API documentation
+
+Visit:
+
+```text
+http://localhost:8000/docs
+```
+
+The interactive Swagger interface can be used to test the endpoint directly from the browser.
+
+## API Endpoint
+
+```http
 GET /departures?q={query}
+```
 
-Returns upcoming departures scheduled within 15 minutes from all stations whose name contains the query string.
+The endpoint returns departures scheduled within the next 15 minutes from all stations whose names contain the supplied query.
 
-### Request
+### Query Parameter
 
-|parameter | Type   | Required | Description |
-|----------|--------|----------|-----------------
-|  q       | string |  yes     | Station name|
-(atleast  3 chars)
+| Parameter | Type   | Required | Description                                           |
+| --------- | ------ | -------: | ----------------------------------------------------- |
+| `q`       | string |      Yes | Partial station name containing at least 3 characters |
 
-### Response shape/results
+### Example Request
 
+```http
+GET /departures?q=bru
+```
+
+### Example Response
+
+```json
 {
   "query": "bru",
   "stations_found": 16,
@@ -52,65 +100,38 @@ Returns upcoming departures scheduled within 15 minutes from all stations whose 
     }
   ]
 }
+```
 
-### Error responses
+## Error Responses
 
-|Status code  | Explanation |
------------------------------------------------------
-| 400         | Query is shorter than 3 characters |
-| 503         | iRail API could not be reached |
+| Status Code | Explanation                                |
+| ----------: | ------------------------------------------ |
+|       `400` | The query contains fewer than 3 characters |
+|       `503` | The iRail API could not be reached         |
 
-## Decisions and trade-offs
+## Technical Decisions
 
--- **Python + FastAPI(Track A)** :
+* **FastAPI:** Selected for its straightforward API development workflow, asynchronous support, automatic validation, and built-in Swagger documentation.
 
-I have chosen this  because FastAPI is async-friendly which matters when making multiple HTTP calls to iRail (one per matching station). It also generates interactive docs automatically which made testing easy during development.
+* **httpx.AsyncClient:** Used for asynchronous communication with the external iRail API.
 
--- **One liveboard call per station** :
+* **UTC-based filtering:** Departure timestamps are compared using timezone-aware UTC values to avoid timezone inconsistencies.
 
-for each matching station I make a separate API call to iRail. This works fine for short queries but could be slow if many stations match. A future improvement would be to run these calls concurrently using asyncio.gather().
-
--- **follow_redirects=True** :
-
-iRail returns a 303 redirect. Without this flag httpx stops at the redirect and returns an empty response. Took some debugging to discover.
-
--- **User-Agent header** :
-
-iRail blocks requests with no User-Agent. Added a custom header to identify the app.
-
--- **15 minute window** :
-
-calculated using UTC timestamps from iRail compared against datetime.now(timezone.utc). Both sides use UTC to avoid timezone issues.
-
--- **Error handling of stations** :
-
-if one station's liveboard call fails, the app skips that station and continues instead of crashing the whole response.
+* **Per-station error handling:** If the liveboard request for one station fails, the remaining stations are still processed.
 
 ## Known Limitations
 
-- every request calls iRail fresh. So,high traffic would hit iRail's rate limits.
-- Station liveboard calls are sequential, not concurrent.Could be faster with asyncio.gather().
-- Fuzzy search not implemented — only exact substring matching supported
+* Every request retrieves fresh data from iRail, so high traffic could be affected by external API rate limits.
+* Station liveboard requests are currently processed sequentially rather than concurrently.
+* Search supports substring matching but does not support fuzzy matching or misspelled station names.
 
-## Time spent
+## Future Improvements
 
-Approximately 5-8 hours over week.
+* Process liveboard requests concurrently using `asyncio.gather()`
+* Add response caching
+* Add automated tests
+* Add fuzzy station-name matching
+* Add a frontend interface for displaying departures visually
 
-## AI usage
 
-I used Claude (claude.ai) and also chatgpt throughout this project as a learning tool.
 
-**What I used it for:**
-- Understanding the iRail API structure before writing any code
-- learnign about API and how FastAPI works.
-- Learning how async/await and httpx work in Python
-- leanred about time conversion and different imports.
-
-**What I did myself:**
-- All code was typed by hand, not copy-pasted
-- Variable names, structure, and logic decisions are my own
-- I asked for explanations of each concept before implementing
-
-**What I rejected or changed:**
-- Claude initially suggested putting the liveboard calls   outside the try/except block. I moved them inside because if the call fails, I still want to handle it per station rather than crash everything.
-- Claude suggested using "asyncio.gather()" for concurrent calls. I decided for now to keep the code readable and easy to explain but I noted it as a known limitation instead.  
